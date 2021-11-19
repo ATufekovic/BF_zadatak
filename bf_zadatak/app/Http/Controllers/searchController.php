@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use App\Models\Meal;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Validator;
 use phpDocumentor\Reflection\Types\Boolean;
+use stdClass;
 
 class searchController extends Controller
 {
@@ -20,17 +23,19 @@ class searchController extends Controller
         }
 
         $meals = $this->getDataByParams($params);
-
-        dd($meals);
+        $data = $this->organizeForOutput($meals, $params["lang"], $params["with"], $params["diff_time"]);
+        dd([$data]);
 
         //organize data and drop it off with JSON header
-        $data = ["meta" => [
+
+
+        $output = ["meta" => [
             "current_page"=> 1,
             "totalItems" => 1,
             "itemsPerPage" => $params["per_page"],
             "totalPages" => 1
         ]];
-        $result = response($data, 200);
+        $result = response($output, 200);
         $result->header("Content-Type", "application/json");
         return $result;
     }
@@ -72,7 +77,7 @@ class searchController extends Controller
             $withParamString = $request->query("with");
             $with = explode($separator,$withParamString);
         } else {
-            $with = null;
+            $with = [];
         }
 
         return [
@@ -119,6 +124,45 @@ class searchController extends Controller
         }
 
         return $data;
+    }
+
+    private function organizeForOutput(Collection $objects, string $lang, array $with, $diff_time):object{
+        $result = new stdClass();
+        $result->data = [];
+        $counter = 0;
+        foreach ($objects as $object){
+            $temp = new stdClass();
+            $temp->id = $object->id;
+            $temp->title = $object->translate($lang)->title;
+            $temp->description = $object->translate($lang)->description;
+
+            if(is_null($diff_time)){
+                $temp->status = "created";
+            } else {
+                //$objectCreatedAt = $object->created_at->getTimestamp();//if diff_time is before updated, it's "created"
+                $objectUpdatedAt = $object->updated_at->getTimestamp();//if diff_time is after updated but before deleted, its "modified"
+                if(is_null($object->deleted_at)){
+                    if($diff_time < $objectUpdatedAt){
+                        $temp->status = "created";
+                    } else {
+                        $temp->status = "modified";
+                    }
+                } else {
+                    $objectDeletedAt = $object->deleted_at->getTimestamp();//if it's after deleted, it's "deleted"
+                    if($diff_time < $objectUpdatedAt){
+                        $temp->status = "created";
+                    } elseif ($diff_time < $objectDeletedAt){
+                        $temp->status = "modified";
+                    } else {
+                        $temp->status = "deleted";
+                    }
+                }
+            }
+
+            $result->data[$counter] = $temp;
+            $counter++;
+        }
+        return $result;
     }
 }
 
