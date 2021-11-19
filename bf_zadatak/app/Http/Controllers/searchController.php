@@ -19,9 +19,11 @@ class searchController extends Controller
             return $this->abortResponse("No such language exists");
         }
 
-        $meals = Meal::has("tags")->get();
+        $meals = $this->getDataByParams($params);
+
         dd($meals);
 
+        //organize data and drop it off with JSON header
         $data = ["meta" => [
             "current_page"=> 1,
             "totalItems" => 1,
@@ -94,6 +96,29 @@ class searchController extends Controller
     private function checkIfLangExists($lang):bool{
         $locals = Config::get("translatable.locales");
         return in_array($lang, $locals);
+    }
+
+    private function getDataByParams($params){
+        $data = null;
+
+        //first we check by both category and tag
+        if(!is_null($params["category"]) && !is_null($params["tags"])){
+            $data = Meal::where("category_id", $params["category"]);
+
+            $data = $data->whereHas("tags", function($query) use ($params){
+                $query->whereIn("id", $params["tags"]);
+            })->get();
+        } elseif (!is_null($params["category"]) && is_null($params["tags"])) {
+            $data = Meal::where("category_id", $params["category"])->get();
+        } elseif (is_null($params["category"]) && !is_null($params["tags"])){
+            $data =Meal::whereHas("tags", function($query) use ($params){
+                $query->whereIn("id", $params["tags"]);
+            })->get();
+        }else{
+            $data = Meal::get();
+        }
+
+        return $data;
     }
 }
 
