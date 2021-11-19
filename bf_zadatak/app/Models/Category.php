@@ -10,13 +10,13 @@ use Astrotomic\Translatable\Contracts\Translatable as TranslatableContracts;
 
 use App\Models\Meal;
 
-class Ingredient extends Model
+class Category extends Model
 {
-    use HasFactory, Translatable;
+    use HasFactory;
 
     public $translatedAttribues = ["title", "slug"];
 
-    public function meals(){//many-to-many for table "meals"
-        return $this->belongsToMany(Meal::class);
+    public function meals(){
+        return $this->hasMany(Meal::class);
     }
 }

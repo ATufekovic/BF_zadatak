@@ -10,9 +10,9 @@ use Astrotomic\Translatable\Contracts\Translatable as TranslatableContracts;
 
 use App\Models\Meal;
 
-class Ingredient extends Model
+class Tag extends Model
 {
-    use HasFactory, Translatable;
+    use HasFactory;
 
     public $translatedAttribues = ["title", "slug"];
 
