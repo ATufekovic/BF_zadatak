@@ -15,7 +15,7 @@ class Ingredients extends Migration
     {
         Schema::create('ingredients', function (Blueprint $table) {
             $table->bigIncrements("id");
-            $table->string("title");
+            //$table->string("title");
 
             $table->string("slug");
         });

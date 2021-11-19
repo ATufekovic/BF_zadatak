@@ -14,9 +14,10 @@ use App\Models\Category;
 
 class Meal extends Model
 {
-    use HasFactory;
+    use HasFactory, Translatable;
+    public $timestamps = false;
 
-    public $translatedAttribues = ["title", "description"];
+    public $translatedAttributes = ["title", "description"];
 
     public function ingredients(){//many-to-many for table "ingredients"
         return $this->belongsToMany(Ingredient::class);

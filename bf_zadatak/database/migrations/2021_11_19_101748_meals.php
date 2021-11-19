@@ -15,12 +15,12 @@ class Meals extends Migration
     {
         Schema::create('meals', function (Blueprint $table) {
             $table->bigIncrements("id");
-            $table->string("title");
-            $table->string("description");
+            //$table->string("title");
+            //$table->string("description");
             $table->string("status");
 
-            $table->bigInteger("category_id");//a meal has a single category, thus it's a one to many relation
-            $table->foreign("category_id")->references("id")->on("category");
+            $table->bigInteger("category_id")->unsigned();//a meal has a single category, thus it's a one to many relation
+            $table->foreign("category_id")->references("id")->on("categories");
 
             //a meal can have multiple tags, thus it's a many-to-many relation
             //a meal (hopefully) has multiple ingredients, thus it's a many-to-many relation

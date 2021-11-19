@@ -15,7 +15,7 @@ class Tags extends Migration
     {
         Schema::create('tags', function (Blueprint $table) {
             $table->bigIncrements("id");
-            $table->string("title");
+            //$table->string("title");
 
             $table->string("slug");
         });

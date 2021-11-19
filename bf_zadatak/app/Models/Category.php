@@ -12,9 +12,10 @@ use App\Models\Meal;
 
 class Category extends Model
 {
-    use HasFactory;
+    use HasFactory, Translatable;
+    public $timestamps = false;
 
-    public $translatedAttribues = ["title", "slug"];
+    public $translatedAttributes = ["title"];
 
     public function meals(){
         return $this->hasMany(Meal::class);

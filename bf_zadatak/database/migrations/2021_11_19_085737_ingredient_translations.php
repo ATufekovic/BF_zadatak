@@ -15,13 +15,13 @@ class IngredientTranslations extends Migration
     {
         Schema::create('ingredient_translations', function (Blueprint $table) {
             $table->bigIncrements("id");
-            $table->bigInteger("ingredient_id")->unsigned();
             $table->string("locale")->index();
 
-            $table->string("title");
-
+            $table->bigInteger("ingredient_id")->unsigned();
             $table->unique(["ingredient_id","locale"]);
             $table->foreign("ingredient_id")->references("id")->on("ingredients")->onDelete("cascade");
+
+            $table->string("title");
         });
     }
 
