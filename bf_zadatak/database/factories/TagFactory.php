@@ -15,10 +15,11 @@ class TagFactory extends Factory
      */
     public function definition()
     {
-        $locales = array_keys(Config::get("locales"));
+        $locales = Config::get("translatable.locales");
         static $counter = 1;
 
-        $parameters["slug"] = "Default slug for this tag (" . $counter . "), random number:" . $this->faker->randomNumber(5, true);
+        $parameters = array();
+        $parameters["slug"] = "Default slug for this tag (" . $counter . "), random number:" . $this->faker->randomNumber(5,true);
         foreach ($locales as $locale){
             $parameters[$locale] = ["title" => "Title for tag (" . $counter . ") and locale: " . $locale];
         }

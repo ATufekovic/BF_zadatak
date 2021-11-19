@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Config;
 
 class MealFactory extends Factory
 {
@@ -13,12 +14,18 @@ class MealFactory extends Factory
      */
     public function definition()
     {
-        return [
-            "title" => $this->faker->word(),
-            "description" => $this->faker->sentence(5, false),
-            "numOfTags" => $this->faker->numberBetween(1,3),
-            "numOfIngredients" => $this->faker->numberBetween(1,3),
-            "category" => $this->faker->numberBetween(1,3)
-        ];
+        $locales = Config::get("translatable.locales");
+        static $counter = 1;
+
+        $parameters = array();
+        foreach ($locales as $locale){
+            $parameters[$locale] = [
+                "title" => "Title for meal (" . $counter . ") and locale: " . $locale,
+                "description" => "Description for meal (" . $counter . ") and locale: " . $locale
+            ];
+        }
+        $counter++;
+
+        return $parameters;
     }
 }

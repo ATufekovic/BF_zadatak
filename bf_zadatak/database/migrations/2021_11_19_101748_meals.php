@@ -17,15 +17,17 @@ class Meals extends Migration
             $table->bigIncrements("id");
             //$table->string("title");
             //$table->string("description");
-            $table->string("status");
 
-            $table->bigInteger("category_id")->unsigned();//a meal has a single category, thus it's a one to many relation
+            $table->bigInteger("category_id")->unsigned()->nullable();//a meal has a single category, thus it's a one to many relation
             $table->foreign("category_id")->references("id")->on("categories");
 
             //a meal can have multiple tags, thus it's a many-to-many relation
             //a meal (hopefully) has multiple ingredients, thus it's a many-to-many relation
             //both of these are defined in another table "meal_tag" and "meal_ingredient"
             //behaviour is defined in their models
+
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

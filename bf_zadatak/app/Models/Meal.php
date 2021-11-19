@@ -11,11 +11,12 @@ use Astrotomic\Translatable\Contracts\Translatable as TranslatableContracts;
 use App\Models\Ingredient;
 use App\Models\Tag;
 use App\Models\Category;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Meal extends Model
 {
     use HasFactory, Translatable;
-    public $timestamps = false;
+    use SoftDeletes;
 
     public $translatedAttributes = ["title", "description"];
 
