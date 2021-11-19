@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Meal;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Validator;
 use phpDocumentor\Reflection\Types\Boolean;
 
 class searchController extends Controller
@@ -14,7 +15,7 @@ class searchController extends Controller
         $this->validateRequest($request);
         $params = $this->gatherParameters($request);
 
-        if(!$this->checkIfLangExists($params["lang"])){//only hard check, everything else is optional
+        if(!$this->checkIfLangExists($params["lang"])){//only hard check, everything else seems optional
             return $this->abortResponse("No such language exists");
         }
 
@@ -33,15 +34,21 @@ class searchController extends Controller
     }
 
     private function validateRequest(Request $request){
-        $validatedData = $request->validate([
+        $rules = [
             "lang" => "string|required",
             "per_page" => "numeric",
             "page" => "numeric",
             "category" => "numeric",
-            "tags" => "regex:/([0-9]+,)+[0-9]+|[0-9]/g",
+            "tags" => ["regex:/^([0-9]+)(,[0-9]+){0,}?$/"],
             "with" => "in:tags,category,ingredients",
             "diff_time" => "numeric"
-        ]);
+        ];
+        $validator = Validator::make($request->all(), $rules);
+
+        if($validator->fails()){
+            dd($validator->failed());//needs to change, but good for now
+        }
+
     }
 
     private function gatherParameters(Request $request, string $separator = ","): array
