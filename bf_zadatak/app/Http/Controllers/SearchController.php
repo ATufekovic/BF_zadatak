@@ -29,29 +29,27 @@ class SearchController extends Controller
             $data = [];
         }
 
-
         //organize data and drop it off with JSON header
         $meta = new stdClass();
-
-        $numOfMeals = 0;
         $numOfMeals = $this->numberOfObjectsByNull($params);
-
-
         $pages = (integer) ceil($numOfMeals / $params["per_page"]);//eg. for 7 meals, and 3 meals per page you get 3 pages
-        $meta->current_page = $params["page"];
+        $meta->current_page = (int) $params["page"];
         $meta->totalItems = $numOfMeals;
-        $meta->itemsPerPage = $params["per_page"];
+        $meta->itemsPerPage = (int) $params["per_page"];
         $meta->totalPages = $pages;
 
         $links = new stdClass();
-        $links->self = $this->constructLinkFromParams($params, 0);
+        $baseLink = "http://localhost/exercise/BF_zadatak/bf_zadatak/public/search";
+        $links->self = $this->constructLinkFromParams($params, 0, "page", $baseLink);
+        $links->next = $this->constructLinkFromParams($params, 1, "page", $baseLink);
+        $links->previous = $this->constructLinkFromParams($params, -1, "page", $baseLink);
 
         $output = new stdClass();
         $output->meta = $meta;
         $output->data = $data;
-        dd($output);
+        $output->links = $links;
 
-        $result = response($output, 200);
+        $result = response(json_encode($output), 200);
         $result->header("Content-Type", "application/json");
         return $result;
     }
@@ -59,12 +57,12 @@ class SearchController extends Controller
     private function validateRequest(Request $request){
         $rules = [
             "lang" => "string|required",
-            "per_page" => "numeric",
-            "page" => "numeric",
+            "per_page" => "numeric|gte:1",
+            "page" => "numeric|gte:1",
             "category" => ["regex:/(^!{0,1}NULL$)|(^\d+$)/"],
             "tags" => ["regex:/^([0-9]+)(,[0-9]+){0,}?$/"],
             "with" => ["regex:/^(((tags|category|ingredients),){1,2}(tags|category|ingredients))$|^(tags|category|ingredients)$/"],//does not cover repetition
-            "diff_time" => "numeric"
+            "diff_time" => "numeric|gte:0"
         ];
         $validator = Validator::make($request->all(), $rules);
 
@@ -151,7 +149,6 @@ class SearchController extends Controller
         //check by category and/or tags or none
         if(!is_null($params["category"]) && !is_null($params["tags"])){
             $data = $this->extractByCategory($params, $firstRow, $finalRow);
-
             $data = $data->whereHas("tags", function($query) use ($params){
                 $query->whereIn("id", $params["tags"]);
             })->get();
@@ -255,12 +252,33 @@ class SearchController extends Controller
 
     private function numberOfObjectsByNull($params):int{
         $numOfMeals = 0;
-        if($params["category"] != "NULL" && $params["category"] != "!NULL"){
+
+        if(is_null($params["category"]) && empty($params["tags"])){//no categories and no tags
             $numOfMeals = Meal::count();
-        } else if ($params["category"] == "!NULL"){
-            $numOfMeals = Meal::where("category_id", "!=", null)->count();
-        } else if($params["category"] == "NULL") {
-            $numOfMeals = Meal::where("category_id", null)->count();
+        } elseif (!is_null($params["category"]) && empty($params["tags"])){//only categories
+            if($params["category"] != "NULL" && $params["category"] != "!NULL"){//all categories
+                $numOfMeals = Meal::where("category_id", $params["category"])->count();
+            } else if ($params["category"] == "!NULL"){//all but empty ones
+                $numOfMeals = Meal::where("category_id", "!=", null)->count();
+            } else if($params["category"] == "NULL") {//only empty ones
+                $numOfMeals = Meal::where("category_id", null)->count();
+            }
+        } elseif (is_null($params["category"]) && !empty($params["tags"])){//only tags
+            $numOfMeals = Meal::whereHas("tags", function($query) use ($params){
+                $query->whereIn("id", $params["tags"]);
+            })->count();
+        } else {//both categories and tags
+            $data = null;
+            if($params["category"] != "NULL" && $params["category"] != "!NULL"){
+                $data = Meal::where("category_id", $params["category"]);
+            } else if ($params["category"] == "!NULL"){
+                $data = Meal::where("category_id", "!=", null);
+            } else if($params["category"] == "NULL") {
+                $data = Meal::where("category_id", null);
+            }
+            $numOfMeals = $data->whereHas("tags", function($query) use ($params){
+                $query->whereIn("id", $params["tags"]);
+            })->count();
         }
         return $numOfMeals;
     }
@@ -277,12 +295,53 @@ class SearchController extends Controller
         return $data;
     }
 
-    private function constructLinkFromParams(array $params, $pageOffset):string
+    private function constructLinkFromParams(array $params, int $offset, string $offsetKey, string $baseLink):string
     {
-        $result = "?";
-        foreach ($params as $param){
-
+        //check for start and end of "page travel
+        if($params[$offsetKey] + $offset < 1){
+            return "null";
+            //$offset = 1 - $params[$offsetKey];//set page to 1 if it tries to go under 1
+        } else {
+            $numOfMeals = $this->numberOfObjectsByNull($params);
+            $pages = (integer) ceil($numOfMeals / $params["per_page"]);
+            if($params[$offsetKey] + $offset > $pages){
+                return "null";
+            }
         }
+        $result = $baseLink . "?";
+        $numItems = count($params);
+        $iteration = 0;
+        foreach ($params as $key => $value){
+            if(empty($value)){
+                $iteration++;
+                $numItems--;
+                continue;
+            }
+            $result .= $key . "=";
+            if(!is_array($value)){
+                if($key === $offsetKey){
+                    $result .= ((int)$value + $offset);
+                } else {
+                    $result .= $value;
+                }
+            } else {
+                $internalNumItems = count($value);
+                $internalIteration = 0;
+                foreach($value as $val){
+                    $result .= $val;
+                    if(++$internalIteration !== $internalNumItems){
+                        //on last item don't add ","
+                        $result .= ",";
+                    }
+                }
+            }
+
+            if(++$iteration !== $numItems){
+                //on last item don't add "&"
+                $result .= "&";
+            }
+        }
+        $result = rtrim($result, "&");
         return $result;
     }
 }
