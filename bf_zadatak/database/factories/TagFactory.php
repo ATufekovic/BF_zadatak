@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Config;
 class TagFactory extends Factory
 {
     /**
-     * Define the model's default state.
+     * Define the model's default state. Uses translatable for translations.
      *
      * @return array
      */

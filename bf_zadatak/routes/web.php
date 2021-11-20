@@ -16,5 +16,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
-
+/**
+ * Single primary endpoint, supports GET queries, more info inside the "search" function
+ * @link ../app/Http/Controllers/SearchController.php
+ */
 Route::get("/search", [App\Http\Controllers\SearchController::class, "search"]);

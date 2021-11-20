@@ -3,17 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use App\Models\Meal;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Validator;
-use phpDocumentor\Reflection\Types\Boolean;
 use stdClass;
 
 class SearchController extends Controller
 {
+    /**
+     * Searches the set DB using the given query parameters.
+     * GET parameters can be:
+     * - lang (required) - shorthand language locale, refer to config/translatable.php for available locales. e.g. ("hr","en","de")
+     * - page (optional) - the selected page, if outside of pagination scope then the function returns nothing. e.g. (>=1)
+     * - per_page (optional) - how many items can populate a page, last page can be partially empty e.g. (>=1)
+     * - category (optional) - what category do the items need to belong to, items can only have one category or none. e.g.("1", "22", "NULL", "!NULL")
+     * - tags (optional) - what tags do the items need to carry, can have none or multiple tags. e.g.("1","2,3",...)
+     * - with (optional) - what extra information to display when searching for items. can only be ("tags"|"category"|"ingredients"). e.g.("tags,ingredients")
+     * - diff_time (optional) - UNIX timestamp that is used to see if an item is "created", "modified" or "deleted" via the created_at, etc. fields.
+     * @param Request $request
+     * @return Response
+     */
     public function search(Request $request):Response{
         $this->validateRequest($request);
         $params = $this->gatherParameters($request);
@@ -31,7 +44,7 @@ class SearchController extends Controller
 
         //organize data and drop it off with JSON header
         $meta = new stdClass();
-        $numOfMeals = $this->numberOfObjectsByNull($params);
+        $numOfMeals = $this->numberOfObjectsByParams($params);
         $pages = (integer) ceil($numOfMeals / $params["per_page"]);//eg. for 7 meals, and 3 meals per page you get 3 pages
         $meta->current_page = (int) $params["page"];
         $meta->totalItems = $numOfMeals;
@@ -54,7 +67,12 @@ class SearchController extends Controller
         return $result;
     }
 
-    private function validateRequest(Request $request){
+    /**
+     * Function that validates the given GET parameters using Laravel validation rules.
+     * @link https://laravel.com/docs/8.x/validation#available-validation-rules
+     * @param Request $request
+     */
+    private function validateRequest(Request $request):void{
         $rules = [
             "lang" => "string|required",
             "per_page" => "numeric|gte:1",
@@ -72,6 +90,12 @@ class SearchController extends Controller
 
     }
 
+    /**
+     * Gathers available parameters from the GET request, if some fields aren't set uses default values.
+     * @param Request $request
+     * @param string $separator
+     * @return array
+     */
     private function gatherParameters(Request $request, string $separator = ","): array
     {
         $lang = $request->query("lang");
@@ -105,23 +129,37 @@ class SearchController extends Controller
         ];
     }
 
-    private function abortResponse($text):Response{
+    /**
+     * Function for aborting a request with an appropriate response with some text describing the problem.
+     * @param string $text
+     * @return Response
+     */
+    private function abortResponse(string $text):Response{
         $data = "Error: " . $text;
         $result = response($data, 400);
         $result->header("Content-Type", "text/plain");
         return $result;
     }
 
-    private function checkIfLangExists($lang):bool{
+    /**
+     * Function to check if the given shorthand locale exists within config/translatable.php
+     * @param string $lang
+     * @return bool
+     */
+    private function checkIfLangExists(string $lang):bool{
         $locals = Config::get("translatable.locales");
         return in_array($lang, $locals);
     }
 
-    private function getDataByParams($params){
+    /**Function to fetch items depending on given parameters. Uses pagination to lessen load on database. Returns null if no items are found via pagination.
+     * @param array $params
+     * @return Collection|null
+     */
+    private function getDataByParams(array $params):?Collection{
         $data = null;
 
         //conditional so that it doesn't need to sift through all meals, what if there were thousands of meals?
-        $numOfMeals = $this->numberOfObjectsByNull($params);
+        $numOfMeals = $this->numberOfObjectsByParams($params);
 
         $pages = (integer) ceil($numOfMeals / $params["per_page"]);//eg. for 7 meals, and 3 meals per page you get 3 pages [3,3,1]
         $firstRow = null;
@@ -161,11 +199,18 @@ class SearchController extends Controller
         }else{
             $data = Meal::orderBy("id")->skip($firstRow - 1)->take($finalRow - $firstRow + 1)->get();
         }
-
         return $data;
     }
 
-    private function organizeForOutput(Collection $meals, string $lang, array $with, $diff_time):array{
+    /**
+     * Function to organize given items like meals into forms suitable for responses.
+     * @param Collection $meals
+     * @param string $lang Language to translate to, has to be supported
+     * @param array|null $with GET query parameter with
+     * @param int|null $diff_time UNIX timestamp
+     * @return array
+     */
+    private function organizeForOutput(Collection $meals, string $lang, ?array $with,?int $diff_time):array{
         $result = [];
         $counter = 0;
         foreach ($meals as $meal){
@@ -241,7 +286,12 @@ class SearchController extends Controller
         return $result;
     }
 
-    private function getAttributes($object, $lang):object{
+    /**Function that takes an object and neatly picks data from it. Returns a stdClass object, thus no old info or relations are associated with it anymore.
+     * @param $object
+     * @param string $lang
+     * @return object
+     */
+    private function getAttributes($object,string $lang):object{
         $container = new stdClass();
         $container->id = $object->id;
         $container->title = $object->translate($lang)->title;
@@ -250,7 +300,11 @@ class SearchController extends Controller
         return $container;
     }
 
-    private function numberOfObjectsByNull($params):int{
+    /**Function to count the total number of items searched depending on the parameters given. Uses "category" and "tags" parameters.
+     * @param array $params
+     * @return int
+     */
+    private function numberOfObjectsByParams(array $params):int{
         $numOfMeals = 0;
 
         if(is_null($params["category"]) && empty($params["tags"])){//no categories and no tags
@@ -283,7 +337,13 @@ class SearchController extends Controller
         return $numOfMeals;
     }
 
-    private function extractByCategory($params, $firstRow, $finalRow){
+    /**Function for pagination, uses $firstRow and $finalRow to determine which rows need to be taken from an ordered table to properly display data on a given page.
+     * @param array $params
+     * @param int $firstRow
+     * @param int $finalRow
+     * @return Builder|null
+     */
+    private function extractByCategory(array $params, int $firstRow, int $finalRow):?Builder{
         $data = null;
         if($params["category"] != "NULL" && $params["category"] != "!NULL"){
             $data = Meal::where("category_id", $params["category"])->orderBy("id")->skip($firstRow - 1)->take($finalRow - $firstRow + 1);
@@ -295,6 +355,13 @@ class SearchController extends Controller
         return $data;
     }
 
+    /**Function to construct a string containing the URL to the search page. Can offset pages via $offsetKey and $offset. Returns the complete URL link.
+     * @param array $params
+     * @param int $offset
+     * @param string $offsetKey
+     * @param string $baseLink
+     * @return string
+     */
     private function constructLinkFromParams(array $params, int $offset, string $offsetKey, string $baseLink):string
     {
         //check for start and end of "page travel
@@ -302,7 +369,7 @@ class SearchController extends Controller
             return "null";
             //$offset = 1 - $params[$offsetKey];//set page to 1 if it tries to go under 1
         } else {
-            $numOfMeals = $this->numberOfObjectsByNull($params);
+            $numOfMeals = $this->numberOfObjectsByParams($params);
             $pages = (integer) ceil($numOfMeals / $params["per_page"]);
             if($params[$offsetKey] + $offset > $pages){
                 return "null";

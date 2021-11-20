@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Config;
 class MealFactory extends Factory
 {
     /**
-     * Define the model's default state.
+     * Define the model's default state. Uses translatable for translations.
      *
      * @return array
      */

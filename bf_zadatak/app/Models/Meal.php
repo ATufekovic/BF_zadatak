@@ -28,7 +28,7 @@ class Meal extends Model
         return $this->belongsToMany(Tag::class);
     }
 
-    public function category(){
+    public function category(){//one-to-many for table "categories"
         return $this->belongsTo(Category::class);
     }
 }

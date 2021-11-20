@@ -17,7 +17,7 @@ class Category extends Model
 
     public $translatedAttributes = ["title"];
 
-    public function meals(){
+    public function meals(){//one-to-many for table "meals"
         return $this->hasMany(Meal::class);
     }
 }

@@ -11,7 +11,7 @@ use App\Models\Tag;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
+     * Seed the application's database. Depends on tag, ingredient, category and meal factories.
      *
      * @return void
      */

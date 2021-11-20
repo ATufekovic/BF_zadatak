@@ -23,8 +23,9 @@ class Meals extends Migration
 
             //a meal can have multiple tags, thus it's a many-to-many relation
             //a meal (hopefully) has multiple ingredients, thus it's a many-to-many relation
-            //both of these are defined in another table "meal_tag" and "meal_ingredient"
+            //both of these are defined in another table "meal_tag" and "ingredient_meal" (watch the alphabetic order)
             //behaviour is defined in their models
+            //care must be taken for the order of migrations, it's executed alphabetically so many-to-many tables should go last
 
             $table->timestamps();
             $table->softDeletes();
