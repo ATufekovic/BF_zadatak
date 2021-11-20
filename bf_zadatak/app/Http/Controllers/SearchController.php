@@ -164,7 +164,7 @@ class SearchController extends Controller
         $pages = (integer) ceil($numOfMeals / $params["per_page"]);//eg. for 7 meals, and 3 meals per page you get 3 pages [3,3,1]
         $firstRow = null;
         $finalRow = null;
-        if($pages == 1) {//no fuss no muss
+        if($pages == 1 && $pages == $params["page"]) {//no fuss no muss, if page > 1 will return empty
             $firstRow = 1;
             $finalRow = $numOfMeals;
         } elseif ($params["page"] == $pages){//last page might be not complete, i.e. only 1 row instead of per_page

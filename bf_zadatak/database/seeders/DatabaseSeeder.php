@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
         $ingredients = Ingredient::factory()->count(5)->create();
         $categories = Category::factory()->count(5)->create();
 
-        $meals = Meal::factory()->count(20)->create();
+        $meals = Meal::factory()->count(40)->create();
 
         foreach ($meals as $meal) {
             //give each meal one or no random category
@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
             }
 
             //give each meal a random number of tags
-            $randomTags = $tags->random(rand(0, $tags->count() - 1));
+            $randomTags = $tags->random(rand(1, $tags->count() - 1));
             foreach ($randomTags as $tag){
                 $meal->tags()->attach($tag->id);
             }
