@@ -17,16 +17,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-        $tags = Tag::factory()->count(4)->create();
-        $ingredients = Ingredient::factory()->count(4)->create();
-        $categories = Category::factory()->count(4)->create();
+        $tags = Tag::factory()->count(5)->create();
+        $ingredients = Ingredient::factory()->count(5)->create();
+        $categories = Category::factory()->count(5)->create();
 
-        $meals = Meal::factory()->count(5)->create();
+        $meals = Meal::factory()->count(20)->create();
 
         foreach ($meals as $meal) {
-            //give each meal one random category
-            $randomCategory = $categories->random(1);
-            $meal->category()->associate($randomCategory[0]->id);
+            //give each meal one or no random category
+            $chance = rand(0,100) / 100;
+            if($chance > 0.20){//x% chance not to have a category
+                $randomCategory = $categories->random(1);
+                $meal->category()->associate($randomCategory[0]->id);
+            }
 
             //give each meal a random number of tags
             $randomTags = $tags->random(rand(0, $tags->count() - 1));
