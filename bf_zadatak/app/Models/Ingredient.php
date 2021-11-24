@@ -4,11 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 use Astrotomic\Translatable\Translatable;
-use Astrotomic\Translatable\Contracts\Translatable as TranslatableContracts;
-
-use App\Models\Meal;
 
 class Ingredient extends Model
 {
@@ -17,7 +13,16 @@ class Ingredient extends Model
 
     public $translatedAttributes = ["title"];
 
-    public function meals(){//many-to-many for table "meals"
+    public function meals()
+    {
+        //many-to-many for table "meals"
         return $this->belongsToMany(Meal::class);
+    }
+
+    public function getDetails(&$temp, $lang)
+    {
+        $temp->id = $this->id;
+        $temp->title = $this->translate($lang)->title;
+        $temp->slug = $this->slug;
     }
 }
