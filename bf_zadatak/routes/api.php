@@ -17,3 +17,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+/**
+ * Single primary endpoint, supports GET queries, more info inside the "search" function
+ * @link ../app/Http/Controllers/SearchController.php
+ */
+Route::get("/getMeals", [App\Http\Controllers\SearchController::class, "getMeals"]);

@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
+use App\Http\Requests\MealGetRequest;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Models\Meal;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Validator;
+use App\Models\Category;
+use Illuminate\Contracts\Validation\Validator;
 use stdClass;
 
 class SearchController extends Controller
@@ -24,17 +24,17 @@ class SearchController extends Controller
      * - tags (optional) - what tags do the items need to carry, can have none or multiple tags. e.g.("1","2,3",...)
      * - with (optional) - what extra information to display when searching for items. can only be ("tags"|"category"|"ingredients"). e.g.("tags,ingredients")
      * - diff_time (optional) - UNIX timestamp that is used to see if an item is "created", "modified" or "deleted" via the created_at, etc. fields.
-     * @param Request $request
-     * @return Response
+     *
+     * @param MealGetRequest $request
+     * @return JsonResponse
      */
-    public function search(Request $request):Response{
-        $this->validateRequest($request);
-        $params = $this->gatherParameters($request);
-
-        if(!$this->checkIfLangExists($params["lang"])){//only hard check, everything else seems optional
-            return $this->abortResponse("No such language exists");
+    public function getMeals(MealGetRequest $request): JsonResponse{
+        if(isset($request->validator) && $request->validator->fails()){
+            return response()->json($request->validator->messages(), 400);
         }
-
+        $params = $request->validated();
+        $params = $this->setDefaultParams($params);
+        
         $meals = $this->getDataByParams($params);
         if(!is_null($meals)){
             $data = $this->organizeForOutput($meals, $params["lang"], $params["with"], $params["diff_time"]);
@@ -62,9 +62,7 @@ class SearchController extends Controller
         $output->data = $data;
         $output->links = $links;
 
-        $result = response(json_encode($output), 200);
-        $result->header("Content-Type", "application/json");
-        return $result;
+        return response()->json($output, 200);
     }
 
     /**
@@ -90,68 +88,9 @@ class SearchController extends Controller
 
     }
 
-    /**
-     * Gathers available parameters from the GET request, if some fields aren't set uses default values.
-     * @param Request $request
-     * @param string $separator
-     * @return array
-     */
-    private function gatherParameters(Request $request, string $separator = ","): array
-    {
-        $lang = $request->query("lang");
-        $per_page = ($request->exists("per_page")) ? $request->query("per_page") : 5;
-        $page = ($request->exists("page")) ? $request->query("page") : 1;
-        $category = ($request->exists("category")) ? $request->query("category") : null;
-        $diff_time = ($request->exists("diff_time")) ? $request->query("diff_time") : null;
-
-        if($request->exists("tags")){//split by ","
-            $tagParamString = $request->query("tags");
-            $tags = explode($separator,$tagParamString);
-        } else {
-            $tags = null;
-        }
-
-        if($request->exists("with")){//split by ","
-            $withParamString = $request->query("with");
-            $with = explode($separator,$withParamString);
-        } else {
-            $with = [];
-        }
-
-        return [
-            "lang" => $lang,
-            "per_page" => $per_page,
-            "page" => $page,
-            "category" => $category,
-            "tags" => $tags,
-            "with" => $with,
-            "diff_time" => $diff_time
-        ];
-    }
-
-    /**
-     * Function for aborting a request with an appropriate response with some text describing the problem.
-     * @param string $text
-     * @return Response
-     */
-    private function abortResponse(string $text):Response{
-        $data = "Error: " . $text;
-        $result = response($data, 400);
-        $result->header("Content-Type", "text/plain");
-        return $result;
-    }
-
-    /**
-     * Function to check if the given shorthand locale exists within config/translatable.php
-     * @param string $lang
-     * @return bool
-     */
-    private function checkIfLangExists(string $lang):bool{
-        $locals = Config::get("translatable.locales");
-        return in_array($lang, $locals);
-    }
-
-    /**Function to fetch items depending on given parameters. Uses pagination to lessen load on database. Returns null if no items are found via pagination.
+    /**Function to fetch items depending on given parameters.
+     * Uses pagination to lessen load on database.
+     * Returns null if no items are found via pagination.
      * @param array $params
      * @return Collection|null
      */
@@ -210,7 +149,7 @@ class SearchController extends Controller
      * @param int|null $diff_time UNIX timestamp
      * @return array
      */
-    private function organizeForOutput(Collection $meals, string $lang, ?array $with,?int $diff_time):array{
+    private function organizeForOutput(Collection $meals, string $lang, ?array $with,?int $diff_time): array{
         $result = [];
         $counter = 0;
         foreach ($meals as $meal){
@@ -410,6 +349,36 @@ class SearchController extends Controller
         }
         $result = rtrim($result, "&");
         return $result;
+    }
+
+    private function setDefaultParams(array $params): array
+    {
+        //has to have all fields either by given value or by default value
+        $results = [];
+        $results["lang"] = $params["lang"];
+
+        $results["per_page"] = $params["per_page"] ?? 5;
+        $results["page"] = $params["page"] ?? 1;
+        $results["category"] = $params["category"] ?? null;
+        $results["diff_time"] = $params["diff_time"] ?? null;
+
+        $results["tags"] = "";
+        if(array_key_exists("tags", $params)){
+            //if it exists, try to split it by ","
+            $results["tags"] = explode(",", $params["tags"]);
+        }else {
+            $results["tags"] = null;
+        }
+
+        $results["with"] = "";
+        if(array_key_exists("with", $params)){
+            //if it exists, try to split it by ","
+            $results["with"] = explode(",", $params["with"]);
+        }else {
+            $results["with"] = null;
+        }
+
+        return $results;
     }
 }
 
