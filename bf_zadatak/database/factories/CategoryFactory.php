@@ -18,7 +18,8 @@ class CategoryFactory extends Factory
         static $counter = 1;
 
         $parameters = array();
-        $parameters["slug"] = "Default slug for this category (" . $counter . "), random number:" . $this->faker->randomNumber(5,true);
+        $parameters["slug"] = "Default slug for this category (" . $counter . "), random number:" . $this->faker->randomNumber(5,
+                true);
         foreach ($locales as $locale) {
             $parameters[$locale] = ["title" => "Title for category (" . $counter . ") and locale: " . $locale];
         }

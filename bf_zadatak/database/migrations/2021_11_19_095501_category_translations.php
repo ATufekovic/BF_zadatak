@@ -20,7 +20,7 @@ class CategoryTranslations extends Migration
 
             $table->string("title");
 
-            $table->unique(["category_id","locale"]);
+            $table->unique(["category_id", "locale"]);
             $table->foreign("category_id")->references("id")->on("categories")->onDelete("cascade");
         });
     }

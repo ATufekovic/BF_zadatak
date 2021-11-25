@@ -20,7 +20,7 @@ class IngredientFactory extends Factory
         $parameters = array();
         $parameters["slug"] = "Default slug for this ingredient (" .
             $counter . "), random number:" .
-            $this->faker->randomNumber(5,true);
+            $this->faker->randomNumber(5, true);
         foreach ($locales as $locale) {
             $parameters[$locale] = [
                 "title" => "Title for ingredient (" . $counter . ") and locale: " . $locale

@@ -21,7 +21,7 @@ class MealTranslations extends Migration
             $table->string("title");
             $table->string("description");
 
-            $table->unique(["meal_id","locale"]);
+            $table->unique(["meal_id", "locale"]);
             $table->foreign("meal_id")->references("id")->on("meals")->onDelete("cascade");
         });
     }

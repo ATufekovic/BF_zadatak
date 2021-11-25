@@ -20,7 +20,7 @@ class IngredientMeal extends Migration
             $table->foreign("ingredient_id")->references("id")->on("ingredients")->onDelete("cascade");
             $table->foreign("meal_id")->references("id")->on("meals")->onDelete("cascade");
 
-            $table->primary(array("ingredient_id","meal_id"));
+            $table->primary(array("ingredient_id", "meal_id"));
         });
     }
 

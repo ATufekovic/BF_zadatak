@@ -20,15 +20,15 @@ class IsLocaleInConfigRule implements Rule
     /**
      * Determine if the validation rule passes.
      *
-     * @param  string  $attribute
-     * @param  mixed  $value
+     * @param string $attribute
+     * @param mixed $value
      * @return bool
      */
     public function passes($attribute, $value)
     {
         $locals = Config::get("translatable.locales");
-        if(is_string($value)){
-            if(in_array($value, $locals)){
+        if (is_string($value)) {
+            if (in_array($value, $locals)) {
                 return true;
             }
         }

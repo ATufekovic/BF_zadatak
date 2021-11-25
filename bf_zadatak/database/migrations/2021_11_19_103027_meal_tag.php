@@ -20,7 +20,7 @@ class MealTag extends Migration
             $table->foreign("meal_id")->references("id")->on("meals")->onDelete("cascade");
             $table->foreign("tag_id")->references("id")->on("tags")->onDelete("cascade");
 
-            $table->primary(array("meal_id","tag_id"));//create new primary key as a composite of two many-to-many keys
+            $table->primary(array("meal_id", "tag_id"));//create new primary key as a composite of two many-to-many keys
         });
     }
 

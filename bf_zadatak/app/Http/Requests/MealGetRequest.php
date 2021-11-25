@@ -34,7 +34,8 @@ class MealGetRequest extends FormRequest
             "page" => "numeric|gte:1",
             "category" => ["regex:/(^!{0,1}NULL$)|(^\d+$)/"],
             "tags" => ["regex:/^([0-9]+)(,[0-9]+){0,}?$/"],
-            "with" => ["regex:/^(((tags|category|ingredients),){1,2}(tags|category|ingredients))$|^(tags|category|ingredients)$/"],//does not cover repetition
+            "with" => ["regex:/^(((tags|category|ingredients),){1,2}(tags|category|ingredients))$|^(tags|category|ingredients)$/"],
+            //does not cover repetition
             "diff_time" => "numeric|gte:0"
         ];
     }

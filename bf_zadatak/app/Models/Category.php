@@ -9,6 +9,7 @@ use Astrotomic\Translatable\Translatable;
 class Category extends Model
 {
     use HasFactory, Translatable;
+
     public $timestamps = false;
 
     public $translatedAttributes = ["title"];

@@ -60,9 +60,9 @@ class Meal extends Model
         }
 
         //handle 'tags' filtration, tags are handled as AND
-        if(!is_null($params["tags"])) {
+        if (!is_null($params["tags"])) {
             foreach ($params["tags"] as $tag) {
-                $results = $results->whereHas("tags", function($query) use ($tag) {
+                $results = $results->whereHas("tags", function ($query) use ($tag) {
                     $query->where("id", "=", $tag);
                 });
             }

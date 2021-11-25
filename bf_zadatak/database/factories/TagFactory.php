@@ -20,7 +20,7 @@ class TagFactory extends Factory
         $parameters = array();
         $parameters["slug"] = "Default slug for this tag (" .
             $counter . "), random number:" .
-            $this->faker->randomNumber(5,true);
+            $this->faker->randomNumber(5, true);
         foreach ($locales as $locale) {
             $parameters[$locale] = [
                 "title" => "Title for tag (" . $counter . ") and locale: " . $locale

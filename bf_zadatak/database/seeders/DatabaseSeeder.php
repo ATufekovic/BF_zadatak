@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
 
         foreach ($meals as $meal) {
             //give each meal one or no random category
-            $chance = rand(0,100);
+            $chance = rand(0, 100);
             if ($chance < $objectCategoryChance) {
                 //x% chance to have a category
                 $randomCategory = $categories->random(1);

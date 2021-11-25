@@ -25,8 +25,9 @@ class SearchController extends Controller
      * @param MealGetRequest $request
      * @return JsonResponse
      */
-    public function getMeals(MealGetRequest $request): JsonResponse{
-        if(isset($request->validator) && $request->validator->fails()){
+    public function getMeals(MealGetRequest $request): JsonResponse
+    {
+        if (isset($request->validator) && $request->validator->fails()) {
             return response()->json($request->validator->messages(), 400);
         }
         $params = $request->validated();
@@ -34,21 +35,26 @@ class SearchController extends Controller
         $modelObject = new Meal();
         $objects = $modelObject->getMealsByParams($params);
 
-        if(!is_null($objects)){
+        if (!is_null($objects)) {
             $data = $this->organizeForOutput($objects, $params["lang"], $params["with"], $params["diff_time"]);
             $numOfObjects = $objects->total();
             $pages = $objects->lastPage();
         } else {
-            $data = ["content" => [], "currentPageNumber" => $params["page"], "nextPageUrl" => null, "previousPageUrl" => null];
+            $data = [
+                "content" => [],
+                "currentPageNumber" => $params["page"],
+                "nextPageUrl" => null,
+                "previousPageUrl" => null
+            ];
             $numOfObjects = 0;
             $pages = 1;
         }
 
         //organize data and drop it off as JSON
         $meta = new stdClass();
-        $meta->current_page = (int) $params["page"];
+        $meta->current_page = (int)$params["page"];
         $meta->totalItems = $numOfObjects;
-        $meta->itemsPerPage = (int) $params["per_page"];
+        $meta->itemsPerPage = (int)$params["per_page"];
         $meta->totalPages = $pages;
 
         $links = new stdClass();
@@ -70,10 +76,11 @@ class SearchController extends Controller
      * @param int|null $diff_time UNIX timestamp
      * @return array
      */
-    private function organizeForOutput(LengthAwarePaginator $meals, string $lang, ?array $with, ?int $diff_time): array{
+    private function organizeForOutput(LengthAwarePaginator $meals, string $lang, ?array $with, ?int $diff_time): array
+    {
         $result = [];
         $counter = 0;
-        foreach ($meals as $meal){
+        foreach ($meals as $meal) {
             $temp = new stdClass();
             $temp->id = $meal->id;
             $temp->title = $meal->translate($lang)->title;
@@ -84,7 +91,12 @@ class SearchController extends Controller
             $counter++;
         }
         //this will disassociate the Collection from the end result
-        return ["content" => $result, "currentPageNumber" => $meals->currentPage(), "nextPageUrl" => $meals->nextPageUrl(), "previousPageUrl" => $meals->previousPageUrl()];
+        return [
+            "content" => $result,
+            "currentPageNumber" => $meals->currentPage(),
+            "nextPageUrl" => $meals->nextPageUrl(),
+            "previousPageUrl" => $meals->previousPageUrl()
+        ];
     }
 
     /**
@@ -105,18 +117,18 @@ class SearchController extends Controller
         $results["diff_time"] = $params["diff_time"] ?? null;
 
         $results["tags"] = "";
-        if(array_key_exists("tags", $params)){
+        if (array_key_exists("tags", $params)) {
             //if it exists, try to split it by ","
             $results["tags"] = explode(",", $params["tags"]);
-        }else {
+        } else {
             $results["tags"] = null;
         }
 
         $results["with"] = "";
-        if(array_key_exists("with", $params)){
+        if (array_key_exists("with", $params)) {
             //if it exists, try to split it by ","
             $results["with"] = array_unique(explode(",", $params["with"]));
-        }else {
+        } else {
             $results["with"] = null;
         }
 

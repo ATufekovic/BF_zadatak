@@ -18,7 +18,7 @@ class IngredientTranslations extends Migration
             $table->string("locale")->index();
 
             $table->bigInteger("ingredient_id")->unsigned();
-            $table->unique(["ingredient_id","locale"]);
+            $table->unique(["ingredient_id", "locale"]);
             $table->foreign("ingredient_id")->references("id")->on("ingredients")->onDelete("cascade");
 
             $table->string("title");
