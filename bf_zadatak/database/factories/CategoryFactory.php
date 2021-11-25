@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class CategoryFactory extends Factory
 {
@@ -19,7 +19,7 @@ class CategoryFactory extends Factory
 
         $parameters = array();
         $parameters["slug"] = "Default slug for this category (" . $counter . "), random number:" . $this->faker->randomNumber(5,true);
-        foreach ($locales as $locale){
+        foreach ($locales as $locale) {
             $parameters[$locale] = ["title" => "Title for category (" . $counter . ") and locale: " . $locale];
         }
         $counter++;

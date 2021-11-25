@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Astrotomic\Translatable\Translatable;
 
 class Tag extends Model
@@ -13,11 +13,20 @@ class Tag extends Model
 
     public $translatedAttributes = ["title"];
 
-    public function meals(){//many-to-many for table "meals"
+    public function meals()
+    {
+        //many-to-many for table "meals"
         return $this->belongsToMany(Meal::class);
     }
 
-    public function getDetails(&$temp, $lang)
+    /**
+     * Function to store tag information into the given object $temp.
+     * Translates into the correct locale according to string $lang.
+     *
+     * @param object $temp
+     * @param string $lang
+     */
+    public function getDetails(object &$temp, string $lang)
     {
         $temp->id = $this->id;
         $temp->title = $this->translate($lang)->title;

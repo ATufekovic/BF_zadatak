@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Astrotomic\Translatable\Translatable;
 
 class Category extends Model
@@ -19,7 +19,14 @@ class Category extends Model
         return $this->hasMany(Meal::class);
     }
 
-    public function getDetails(&$temp, $lang)
+    /**
+     * Function to store category information into the given object $temp.
+     * Translates into the correct locale according to string $lang.
+     *
+     * @param object $temp
+     * @param string $lang
+     */
+    public function getDetails(object &$temp, string $lang)
     {
         $temp->id = $this->id;
         $temp->title = $this->translate($lang)->title;

@@ -2,9 +2,8 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\Tag;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class TagFactory extends Factory
 {
@@ -19,14 +18,16 @@ class TagFactory extends Factory
         static $counter = 1;
 
         $parameters = array();
-        $parameters["slug"] = "Default slug for this tag (" . $counter . "), random number:" . $this->faker->randomNumber(5,true);
-        foreach ($locales as $locale){
-            $parameters[$locale] = ["title" => "Title for tag (" . $counter . ") and locale: " . $locale];
+        $parameters["slug"] = "Default slug for this tag (" .
+            $counter . "), random number:" .
+            $this->faker->randomNumber(5,true);
+        foreach ($locales as $locale) {
+            $parameters[$locale] = [
+                "title" => "Title for tag (" . $counter . ") and locale: " . $locale
+            ];
         }
         $counter++;
 
         return $parameters;
     }
-
-    protected $model = Tag::class;
 }

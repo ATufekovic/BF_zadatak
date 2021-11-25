@@ -2,14 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\MealGetRequest;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\JsonResponse;
 use App\Models\Meal;
-use App\Models\Category;
+use App\Http\Requests\MealGetRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
+
 use stdClass;
 
 class SearchController extends Controller
@@ -90,61 +87,12 @@ class SearchController extends Controller
         return ["content" => $result, "currentPageNumber" => $meals->currentPage(), "nextPageUrl" => $meals->nextPageUrl(), "previousPageUrl" => $meals->previousPageUrl()];
     }
 
-    /**Function to count the total number of items searched depending on the parameters given. Uses "category" and "tags" parameters.
+    /**
+     * Function to fix $params to have all supported query tags and their defaults.
+     *
      * @param array $params
-     * @return int
+     * @return array
      */
-    private function numberOfObjectsByParams(array $params):int{
-        $numOfMeals = 0;
-
-        if(is_null($params["category"]) && empty($params["tags"])){//no categories and no tags
-            $numOfMeals = Meal::count();
-        } elseif (!is_null($params["category"]) && empty($params["tags"])){//only categories
-            if($params["category"] != "NULL" && $params["category"] != "!NULL"){//all categories
-                $numOfMeals = Meal::where("category_id", $params["category"])->count();
-            } else if ($params["category"] == "!NULL"){//all but empty ones
-                $numOfMeals = Meal::where("category_id", "!=", null)->count();
-            } else if($params["category"] == "NULL") {//only empty ones
-                $numOfMeals = Meal::where("category_id", null)->count();
-            }
-        } elseif (is_null($params["category"]) && !empty($params["tags"])){//only tags
-            $numOfMeals = Meal::whereHas("tags", function($query) use ($params){
-                $query->whereIn("id", $params["tags"]);
-            })->count();
-        } else {//both categories and tags
-            $data = null;
-            if($params["category"] != "NULL" && $params["category"] != "!NULL"){
-                $data = Meal::where("category_id", $params["category"]);
-            } else if ($params["category"] == "!NULL"){
-                $data = Meal::where("category_id", "!=", null);
-            } else if($params["category"] == "NULL") {
-                $data = Meal::where("category_id", null);
-            }
-            $numOfMeals = $data->whereHas("tags", function($query) use ($params){
-                $query->whereIn("id", $params["tags"]);
-            })->count();
-        }
-        return $numOfMeals;
-    }
-
-    /**Function for pagination, uses $firstRow and $finalRow to determine which rows need to be taken from an ordered table to properly display data on a given page.
-     * @param array $params
-     * @param int $firstRow
-     * @param int $finalRow
-     * @return Builder|null
-     */
-    private function extractByCategory(array $params, int $firstRow, int $finalRow):?Builder{
-        $data = null;
-        if($params["category"] != "NULL" && $params["category"] != "!NULL"){
-            $data = Meal::where("category_id", $params["category"])->orderBy("id")->skip($firstRow - 1)->take($finalRow - $firstRow + 1);
-        } else if ($params["category"] == "!NULL"){
-            $data = Meal::where("category_id", "!=", null)->orderBy("id")->skip($firstRow - 1)->take($finalRow - $firstRow + 1);
-        } else if($params["category"] == "NULL") {
-            $data = Meal::where("category_id", null)->orderBy("id")->skip($firstRow - 1)->take($finalRow - $firstRow + 1);
-        }
-        return $data;
-    }
-
     private function setDefaultParams(array $params): array
     {
         //has to have all fields either by given value or by default value
@@ -175,6 +123,14 @@ class SearchController extends Controller
         return $results;
     }
 
+    /**
+     * Function to fill the object $links with the URL links to itself, next
+     * page and previous page using the given arguments $data and $params.
+     *
+     * @param stdClass $links
+     * @param array $data
+     * @param array $params
+     */
     private function setLinks(stdClass &$links, array $data, array $params): void
     {
         $baseLink = url()->current();
@@ -197,7 +153,16 @@ class SearchController extends Controller
         }
     }
 
-    private function buildQuery($params): string
+    /**
+     * Function that takes an array of GET query arguments and returns a query
+     * string that matches the given array. Needs key => value arrays.
+     * If arrays exist within $params it returns them as comma separated values.
+     * Only supports one additional level of arrays.
+     *
+     * @param array $params - "key" => "value" array
+     * @return string - string that starts with "?"
+     */
+    private function buildQuery(array $params): string
     {
         $query = "?";
         foreach ($params as $key => $value) {
@@ -216,6 +181,7 @@ class SearchController extends Controller
 
             $query .= "&";
         }
+        //trim any & that are left over
         return rtrim($query, "&");
     }
 }

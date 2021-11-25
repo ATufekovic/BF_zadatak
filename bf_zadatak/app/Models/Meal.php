@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Astrotomic\Translatable\Translatable;
+
 use stdClass;
 
 class Meal extends Model
@@ -33,7 +34,13 @@ class Meal extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function getMealsByParams($params): ?LengthAwarePaginator
+    /**
+     * For a set of parameters given by the GET query, return a paginated collection of filtered objects.
+     *
+     * @param array $params
+     * @return LengthAwarePaginator|null
+     */
+    public function getMealsByParams(array $params): ?LengthAwarePaginator
     {
         $results = $this;
 
@@ -48,13 +55,13 @@ class Meal extends Model
             $results = $results->where("category_id", "=", null);
         } elseif ($params["category"] === "!NULL") {
             $results = $results->where("category_id", "!=", null);
-        } elseif(!is_null($params["category"])) {
+        } elseif (!is_null($params["category"])) {
             $results = $results->where("category_id", "=", $params["category"]);
         }
 
         //handle 'tags' filtration, tags are handled as AND
         if(!is_null($params["tags"])) {
-            foreach($params["tags"] as $tag){
+            foreach ($params["tags"] as $tag) {
                 $results = $results->whereHas("tags", function($query) use ($tag) {
                     $query->where("id", "=", $tag);
                 });
@@ -71,6 +78,13 @@ class Meal extends Model
         return $results;
     }
 
+    /**
+     * Return the readiness status of the object depending on the argument $diff_time.
+     * $diff_time must be a UNIX timestamp to work properly.
+     *
+     * @param int|null $diff_time - Unix Timestamp
+     * @return string - one of "created", "modified", "deleted"
+     */
     public function getStatus(?int $diff_time): string
     {
         $result = "";
@@ -82,7 +96,8 @@ class Meal extends Model
             //created_at, so this condition covers that as well.
             $result = "created";
         } elseif (is_null($this->deleted_at) && ($diff_time > $this->updated_at->timestamp)) {
-            //check if it was ever deleted, since deletion updates "updated_at" column
+            //check if it was ever deleted, since soft deletion
+            //updates "updated_at" column
             $result = "modified";
         } elseif ((!is_null($this->deleted_at)) && ($diff_time > $this->updated_at->timestamp)) {
             //if deleted, updated_at equals deleted_at
@@ -91,6 +106,14 @@ class Meal extends Model
         return $result;
     }
 
+    /**
+     * Using the given object $temp, the method attempts to fill it with information about itself according to
+     * the $with array. It translates using the $lang locale.
+     *
+     * @param object $temp
+     * @param array|null $with
+     * @param string $lang - one of the system locales
+     */
     public function setDetails(object &$temp, ?array $with, string $lang): void
     {
         if (is_null($with)) {
@@ -110,11 +133,26 @@ class Meal extends Model
         }
     }
 
+    /* NOTE: The following three functions break DRY.
+     * They do so because in the future their definition may change, i.e. an
+     * ingredient may get a "warning" column to warn about the presence of
+     * allergens in the food, a category may change to have more columns with
+     * more text to describe it better, etc.
+     * Additionally, tags and ingredients are many-to-many, thus no interface
+     * can match all three models.*/
+
+    /**
+     * Function to get details about the objects "category" into a container
+     * object to return it. Object may be null, so it can return an empty object.
+     *
+     * @param string $lang - one of the system locales
+     * @return object
+     */
     private function getCategoryDetails(string $lang): object
     {
         $category = new stdClass();
 
-        if($this->category_id === null){
+        if ($this->category_id === null) {
             //category may be NULL
             return $category;
         } else {
@@ -124,6 +162,14 @@ class Meal extends Model
         return $category;
     }
 
+    /**
+     * Function to get details about the objects "tags" into container objects
+     * to return it. It will always have at least one tag, so it can't return an
+     * empty object.
+     *
+     * @param string $lang - one of the system locales
+     * @return array
+     */
     private function getTagsDetails(string $lang): array
     {
         $tags = [];
@@ -138,12 +184,20 @@ class Meal extends Model
         return $tags;
     }
 
-    private function getIngredientsDetails(string $lang)
+    /**
+     * Function to get details about the objects "ingredients" into container
+     * objects to return it. It will always have at least one ingredient, so it
+     * can't return an empty object.
+     *
+     * @param string $lang - one of the system locales
+     * @return array
+     */
+    private function getIngredientsDetails(string $lang): array
     {
         $ingredients = [];
         $ingredientCounter = 0;
 
-        foreach ($this->ingredients as $ingredient){
+        foreach ($this->ingredients as $ingredient) {
             $ingredients[$ingredientCounter] = new stdClass();
             $ingredient->getDetails($ingredients[$ingredientCounter], $lang);
             $ingredientCounter++;

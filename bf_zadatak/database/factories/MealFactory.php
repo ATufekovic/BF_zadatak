@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class MealFactory extends Factory
 {
@@ -18,7 +18,7 @@ class MealFactory extends Factory
         static $counter = 1;
 
         $parameters = array();
-        foreach ($locales as $locale){
+        foreach ($locales as $locale) {
             $parameters[$locale] = [
                 "title" => "Title for meal (" . $counter . ") and locale: " . $locale,
                 "description" => "Description for meal (" . $counter . ") and locale: " . $locale
