@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use App\Models\Meal;
 use App\Models\Category;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use stdClass;
 
 class SearchController extends Controller

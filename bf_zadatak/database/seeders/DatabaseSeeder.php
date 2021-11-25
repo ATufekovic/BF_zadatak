@@ -25,25 +25,41 @@ class DatabaseSeeder extends Seeder
 
         foreach ($meals as $meal) {
             //give each meal one or no random category
-            $chance = rand(0,100) / 100;
-            if($chance > 0.20){//x% chance not to have a category
+            $chance = rand(0,100);
+            if ($chance > 20) { //x% chance not to have a category
                 $randomCategory = $categories->random(1);
                 $meal->category()->associate($randomCategory[0]->id);
             }
 
             //give each meal a random number of tags
             $randomTags = $tags->random(rand(1, $tags->count() - 1));
-            foreach ($randomTags as $tag){
+            foreach ($randomTags as $tag) {
                 $meal->tags()->attach($tag->id);
             }
 
             //give each meal a random number of ingredients, but at least one
             $randomIngredients = $ingredients->random(rand(1, $ingredients->count() - 1));
-            foreach ($randomIngredients as $ingredient){
+            foreach ($randomIngredients as $ingredient) {
                 $meal->ingredients()->attach($ingredient->id);
             }
 
             $meal->save();
+        }
+
+        sleep(10);
+
+        foreach ($meals as $meal){
+            $meal->touch();
+        }
+
+        sleep(10);
+
+        foreach($meals as $meal){
+            $chance = rand(0, 100);
+            if ($chance < 20) { //x% chance to be deleted, use for testing only
+                //soft deletes
+                $meal->delete();
+            }
         }
     }
 }

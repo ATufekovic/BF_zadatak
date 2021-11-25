@@ -55,10 +55,15 @@ class Meal extends Model
         //handle 'tags' filtration, tags are handled as AND
         if(!is_null($params["tags"])) {
             foreach($params["tags"] as $tag){
-                $results = $results->whereHas("tags", function($query) use ($tag){
+                $results = $results->whereHas("tags", function($query) use ($tag) {
                     $query->where("id", "=", $tag);
                 });
             }
+        }
+
+        //handle diff_time so that it can fetch soft deleted rows
+        if (!is_null($params["diff_time"])) {
+            $results = $results->withTrashed();
         }
 
         //on resulting query do pagination
@@ -66,28 +71,24 @@ class Meal extends Model
         return $results;
     }
 
-    public function getStatus($diff_time): string
-    {   
+    public function getStatus(?int $diff_time): string
+    {
+        $result = "";
         if (is_null($diff_time)) {
-            return "created";
+            $result = "created";
+        } elseif ($diff_time <= $this->updated_at->timestamp) {
+            //Up until exactly this point it was still "fresh", so we use lte.
+            //It was not specified how to handle if diff_time is before
+            //created_at, so this condition covers that as well.
+            $result = "created";
+        } elseif (is_null($this->deleted_at) && ($diff_time > $this->updated_at->timestamp)) {
+            //check if it was ever deleted, since deletion updates "updated_at" column
+            $result = "modified";
+        } elseif ((!is_null($this->deleted_at)) && ($diff_time > $this->updated_at->timestamp)) {
+            //if deleted, updated_at equals deleted_at
+            $result = "deleted";
         }
-        //if created and not modified
-        if ($diff_time < $this->updated_at->timestamp) {
-            return "created";
-        } else {
-            //if created and/or modified but not deleted
-            if (is_null($this->deleted_at)){
-                return "created";
-            } else {
-                if ($diff_time < $this->deleted_at->timestamp) {
-                    return "created";
-                } else {
-                    //since diff_time > updated and deleted return deleted
-                    //chaining if else like this guarantees that some string returns
-                    return "deleted";
-                }
-            }
-        }
+        return $result;
     }
 
     public function setDetails(object &$temp, ?array $with, string $lang): void
