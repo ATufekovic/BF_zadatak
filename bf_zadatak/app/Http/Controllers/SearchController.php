@@ -38,29 +38,27 @@ class SearchController extends Controller
 
         if(!is_null($objects)){
             $data = $this->organizeForOutput($objects, $params["lang"], $params["with"], $params["diff_time"]);
+            $numOfObjects = $objects->total();
+            $pages = $objects->lastPage();
         } else {
-            $data = [[], $params["page"], "null", "null"];
+            $data = ["content" => [], "currentPageNumber" => $params["page"], "nextPageUrl" => null, "previousPageUrl" => null];
+            $numOfObjects = 0;
+            $pages = 1;
         }
-        dd($data);
 
-        //organize data and drop it off with JSON header
+        //organize data and drop it off as JSON
         $meta = new stdClass();
-        $numOfMeals = $this->numberOfObjectsByParams($params);
-        $pages = (integer) ceil($numOfMeals / $params["per_page"]);//eg. for 7 meals, and 3 meals per page you get 3 pages
         $meta->current_page = (int) $params["page"];
-        $meta->totalItems = $numOfMeals;
+        $meta->totalItems = $numOfObjects;
         $meta->itemsPerPage = (int) $params["per_page"];
         $meta->totalPages = $pages;
 
         $links = new stdClass();
-        $baseLink = "http://localhost/exercise/BF_zadatak/bf_zadatak/public/search";
-        $links->self = $this->constructLinkFromParams($params, 0, "page", $baseLink);
-        $links->next = $this->constructLinkFromParams($params, 1, "page", $baseLink);
-        $links->previous = $this->constructLinkFromParams($params, -1, "page", $baseLink);
+        $this->setLinks($links, $data, $params);
 
         $output = new stdClass();
         $output->meta = $meta;
-        $output->data = $data;
+        $output->data = $data["content"];
         $output->links = $links;
 
         return response()->json($output, 200);
@@ -68,13 +66,13 @@ class SearchController extends Controller
 
     /**
      * Function to organize given items like meals into forms suitable for responses.
-     * @param Collection $meals
+     * @param LengthAwarePaginator $meals
      * @param string $lang Language to translate to, has to be supported
      * @param array|null $with GET query parameter with
      * @param int|null $diff_time UNIX timestamp
      * @return array
      */
-    private function organizeForOutput(LengthAwarePaginator $meals, string $lang, ?array $with,?int $diff_time): array{
+    private function organizeForOutput(LengthAwarePaginator $meals, string $lang, ?array $with, ?int $diff_time): array{
         $result = [];
         $counter = 0;
         foreach ($meals as $meal){
@@ -82,40 +80,13 @@ class SearchController extends Controller
             $temp->id = $meal->id;
             $temp->title = $meal->translate($lang)->title;
             $temp->description = $meal->translate($lang)->description;
-
-            //handle diff_time
             $temp->status = $meal->getStatus($diff_time);
-
-            if(is_null($diff_time)){
-                $temp->status = "created";
-            } else {
-                //$objectCreatedAt = $meal->created_at->getTimestamp();//if diff_time is before updated, it's "created"
-                $objectUpdatedAt = $meal->updated_at->getTimestamp();//if diff_time is after updated but before deleted, its "modified"
-                if(is_null($meal->deleted_at)){
-                    if($diff_time < $objectUpdatedAt){
-                        $temp->status = "created";
-                    } else {
-                        $temp->status = "modified";
-                    }
-                } else {
-                    $objectDeletedAt = $meal->deleted_at->getTimestamp();//if it's after deleted, it's "deleted"
-                    if($diff_time < $objectUpdatedAt){
-                        $temp->status = "created";
-                    } elseif ($diff_time < $objectDeletedAt){
-                        $temp->status = "modified";
-                    } else {
-                        $temp->status = "deleted";
-                    }
-                }
-            }
-
             $meal->setDetails($temp, $with, $lang);
-            dd($temp);
             $result[$counter] = $temp;
             $counter++;
         }
-        //this will disassociate the Collection
-        return [$result, $meals->currentPage(), $meals->nextPageUrl(), $meals->previousPageUrl()];
+        //this will disassociate the Collection from the end result
+        return ["content" => $result, "currentPageNumber" => $meals->currentPage(), "nextPageUrl" => $meals->nextPageUrl(), "previousPageUrl" => $meals->previousPageUrl()];
     }
 
     /**Function to count the total number of items searched depending on the parameters given. Uses "category" and "tags" parameters.
@@ -173,63 +144,6 @@ class SearchController extends Controller
         return $data;
     }
 
-    /**Function to construct a string containing the URL to the search page. Can offset pages via $offsetKey and $offset. Returns the complete URL link.
-     * @param array $params
-     * @param int $offset
-     * @param string $offsetKey
-     * @param string $baseLink
-     * @return string
-     */
-    private function constructLinkFromParams(array $params, int $offset, string $offsetKey, string $baseLink):string
-    {
-        //check for start and end of "page travel
-        if($params[$offsetKey] + $offset < 1){
-            return "null";
-            //$offset = 1 - $params[$offsetKey];//set page to 1 if it tries to go under 1
-        } else {
-            $numOfMeals = $this->numberOfObjectsByParams($params);
-            $pages = (integer) ceil($numOfMeals / $params["per_page"]);
-            if($params[$offsetKey] + $offset > $pages){
-                return "null";
-            }
-        }
-        $result = $baseLink . "?";
-        $numItems = count($params);
-        $iteration = 0;
-        foreach ($params as $key => $value){
-            if(empty($value)){
-                $iteration++;
-                $numItems--;
-                continue;
-            }
-            $result .= $key . "=";
-            if(!is_array($value)){
-                if($key === $offsetKey){
-                    $result .= ((int)$value + $offset);
-                } else {
-                    $result .= $value;
-                }
-            } else {
-                $internalNumItems = count($value);
-                $internalIteration = 0;
-                foreach($value as $val){
-                    $result .= $val;
-                    if(++$internalIteration !== $internalNumItems){
-                        //on last item don't add ","
-                        $result .= ",";
-                    }
-                }
-            }
-
-            if(++$iteration !== $numItems){
-                //on last item don't add "&"
-                $result .= "&";
-            }
-        }
-        $result = rtrim($result, "&");
-        return $result;
-    }
-
     private function setDefaultParams(array $params): array
     {
         //has to have all fields either by given value or by default value
@@ -258,6 +172,50 @@ class SearchController extends Controller
         }
 
         return $results;
+    }
+
+    private function setLinks(stdClass &$links, array $data, array $params): void
+    {
+        $baseLink = url()->current();
+        $links->self = $baseLink . $this->buildQuery($params);
+
+        if (is_null($data["previousPageUrl"])) {
+            $links->prev = null;
+        } else {
+            $params["page"] -= 1;
+            $links->prev = $baseLink . $this->buildQuery($params);
+            $params["page"] += 1;
+        }
+
+        if (is_null($data["nextPageUrl"])) {
+            $links->next = null;
+        } else {
+            $params["page"] += 1;
+            $links->next = $baseLink . $this->buildQuery($params);
+            $params["page"] -= 1;
+        }
+    }
+
+    private function buildQuery($params): string
+    {
+        $query = "?";
+        foreach ($params as $key => $value) {
+            if (is_null($value)) {
+                continue;
+            } else {
+                $query .= $key;
+            }
+
+            if (is_array($value)) {
+                $csvString = implode(",", $value);
+                $query .= "=" . $csvString;
+            } else {
+                $query .= "=" . $value;
+            }
+
+            $query .= "&";
+        }
+        return rtrim($query, "&");
     }
 }
 

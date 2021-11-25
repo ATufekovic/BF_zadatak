@@ -39,7 +39,7 @@ class Meal extends Model
 
         //handle 'with' for display of information
         if (!is_null($params["with"])) {
-            //array_unique should handle any duplicates
+            //array_unique should have handled any duplicates
             $results = $results->with($params["with"]);
         }
 
@@ -52,7 +52,7 @@ class Meal extends Model
             $results = $results->where("category_id", "=", $params["category"]);
         }
 
-        //handle 'tags' filtration
+        //handle 'tags' filtration, tags are handled as AND
         if(!is_null($params["tags"])) {
             foreach($params["tags"] as $tag){
                 $results = $results->whereHas("tags", function($query) use ($tag){
@@ -61,18 +61,40 @@ class Meal extends Model
             }
         }
 
-        //handle pagination
+        //on resulting query do pagination
         $results = $results->paginate($params["per_page"], ["*"], "page", $params["page"]);
         return $results;
     }
 
-    public function getStatus($diff_time)
-    {
-        return "created";//TODO: finish stub
+    public function getStatus($diff_time): string
+    {   
+        if (is_null($diff_time)) {
+            return "created";
+        }
+        //if created and not modified
+        if ($diff_time < $this->updated_at->timestamp) {
+            return "created";
+        } else {
+            //if created and/or modified but not deleted
+            if (is_null($this->deleted_at)){
+                return "created";
+            } else {
+                if ($diff_time < $this->deleted_at->timestamp) {
+                    return "created";
+                } else {
+                    //since diff_time > updated and deleted return deleted
+                    //chaining if else like this guarantees that some string returns
+                    return "deleted";
+                }
+            }
+        }
     }
 
-    public function setDetails(object &$temp, array $with, string $lang): void
+    public function setDetails(object &$temp, ?array $with, string $lang): void
     {
+        if (is_null($with)) {
+            return;
+        }
         //handle category
         if (in_array("category", $with)) {
             $temp->category = $this->getCategoryDetails($lang);
